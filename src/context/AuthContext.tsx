@@ -15,14 +15,56 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const sanitizeUser = (u: User | null): User | null => {
+  if (!u) return null;
+  const sanitized = { ...u };
+  if (typeof sanitized.name === 'string') {
+    sanitized.name = sanitized.name
+      .replace(/Rahul Pal/g, 'Sonam Pal')
+      .replace(/RahulPal/g, 'SonamPal');
+  }
+  return sanitized;
+};
+
+const sanitizeProfile = (p: Student | Teacher | null): Student | Teacher | null => {
+  if (!p) return null;
+  const sanitized = { ...p };
+  if (typeof (sanitized as any).name === 'string') {
+    (sanitized as any).name = (sanitized as any).name
+      .replace(/Rahul Pal/g, 'Sonam Pal')
+      .replace(/RahulPal/g, 'SonamPal');
+  }
+  return sanitized;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('smart_sms_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('smart_sms_user');
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      const sanitized = sanitizeUser(parsed);
+      if (sanitized && parsed && sanitized.name !== parsed.name) {
+        localStorage.setItem('smart_sms_user', JSON.stringify(sanitized));
+      }
+      return sanitized;
+    } catch {
+      return null;
+    }
   });
   const [profile, setProfile] = useState<Student | Teacher | null>(() => {
-    const saved = localStorage.getItem('smart_sms_profile');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('smart_sms_profile');
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      const sanitized = sanitizeProfile(parsed);
+      if (sanitized && parsed && (sanitized as any).name !== (parsed as any).name) {
+        localStorage.setItem('smart_sms_profile', JSON.stringify(sanitized));
+      }
+      return sanitized;
+    } catch {
+      return null;
+    }
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('smart_sms_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -37,11 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res: any = await api.get('/auth/me');
       if (res.success && res.data) {
-        setUser(res.data.user);
-        setProfile(res.data.profile);
-        localStorage.setItem('smart_sms_user', JSON.stringify(res.data.user));
-        if (res.data.profile) {
-          localStorage.setItem('smart_sms_profile', JSON.stringify(res.data.profile));
+        const sanitizedUser = sanitizeUser(res.data.user);
+        const sanitizedProfile = sanitizeProfile(res.data.profile);
+        setUser(sanitizedUser);
+        setProfile(sanitizedProfile);
+        localStorage.setItem('smart_sms_user', JSON.stringify(sanitizedUser));
+        if (sanitizedProfile) {
+          localStorage.setItem('smart_sms_profile', JSON.stringify(sanitizedProfile));
         }
       }
     } catch (err) {
@@ -76,13 +120,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res: any = await api.post('/auth/login', { email, password, role });
       if (res.success && res.data) {
         const { token: newToken, user: newUser, profile: newProfile } = res.data;
+        const sanitizedUser = sanitizeUser(newUser);
+        const sanitizedProfile = sanitizeProfile(newProfile);
         setToken(newToken);
-        setUser(newUser);
-        setProfile(newProfile);
+        setUser(sanitizedUser);
+        setProfile(sanitizedProfile);
         localStorage.setItem('smart_sms_token', newToken);
-        localStorage.setItem('smart_sms_user', JSON.stringify(newUser));
-        if (newProfile) {
-          localStorage.setItem('smart_sms_profile', JSON.stringify(newProfile));
+        localStorage.setItem('smart_sms_user', JSON.stringify(sanitizedUser));
+        if (sanitizedProfile) {
+          localStorage.setItem('smart_sms_profile', JSON.stringify(sanitizedProfile));
         }
       }
     } finally {
