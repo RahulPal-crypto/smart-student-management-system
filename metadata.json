@@ -1,0 +1,10 @@
+{
+  "name": "Remix Remix Smart Student Management System",
+  "description": "Smart Student Management System with role-based portals for Admin, Teacher, and Student, intelligent attendance risk tracking, QR attendance, early warning indicators, and academic health scoring.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
